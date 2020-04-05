@@ -71,6 +71,19 @@ trap(struct trapframe *tf)
     uartintr();
     lapiceoi();
     break;
+  case T_PGFLT:;
+   uint cr2 = rcr2();
+   uint totPages = myproc()->stackSize + 1;
+   if(cr2 > KERNBASE - (PGSIZE * totPages)){
+	uint addr = KERNBASE - (PGSIZE * totPages);
+   	if(allocuvm(myproc()->pgdir, addr , addr + 4) == 0){         
+	  cprintf("case T_PGFLT from trap.c: allocuvm failed. Number of current allocated pages: %d\n", myproc()->stackSize);        
+	  exit();      
+	}        
+	myproc()->stackSize += 1;       
+	cprintf("case T_PGFLT from trap.c: allocuvm succeeded. Number of pages allocated: %d\n", myproc()->stackSize);
+  }
+  break;
   case T_IRQ0 + 7:
   case T_IRQ0 + IRQ_SPURIOUS:
     cprintf("cpu%d: spurious interrupt at %x:%x\n",
